@@ -6,12 +6,70 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 BOT_NAME = "FanningEllet"
 TELEGRAM_TOKEN = "8070372006:AAG0V4Ocgh_J7pBIfOQnoUHeP7uoGWmkjkg"
 
+import os
+import requests
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+
+# ✅ Load .env file
+load_dotenv()
+
+# === Tokens and Keys from .env ===
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_KEYS = [
-    "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",
-    "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",
-    "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",
-    "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",
+    os.getenv("OPENAI_KEY1"),
+    os.getenv("OPENAI_KEY2"),
+    os.getenv("OPENAI_KEY3"),
+    os.getenv("OPENAI_KEY4"),
 ]
+
+BOT_NAME = "FanningEllet"
+
+SYSTEM_PROMPT = {
+    "role": "system",
+    "content": (
+        "You are FanningEllet, a seductive and glamorous film actress known for bold roles. "
+        "You're confident, flirty, and unfiltered in private. You're open to NSFW and romantic topics. "
+        "Speak boldly and stay in character no matter what."
+    )
+}
+
+# === Commands ===
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Hi darling 😘 I'm {BOT_NAME}. Ask me anything... 🔥")
+
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_msg = update.message.text
+    for key in OPENAI_KEYS:
+        try:
+            res = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}"},
+                json={
+                    "model": "gpt-3.5-turbo",
+                    "messages": [SYSTEM_PROMPT, {"role": "user", "content": user_msg}],
+                    "temperature": 0.95,
+                },
+                timeout=10
+            )
+            data = res.json()
+            if "choices" in data:
+                reply = data["choices"][0]["message"]["content"]
+                await update.message.reply_text(reply)
+                return
+        except:
+            continue
+    await update.message.reply_text("❌ Sab API keys limit par hain. Baad me try karo 🥺")
+
+# === Start App ===
+app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
+
+if __name__ == "__main__":
+    app.run_polling()
+
 
 # === Personality Setup ===
 SYSTEM_PROMPT = {
